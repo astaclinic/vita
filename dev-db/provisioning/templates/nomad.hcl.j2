@@ -1,0 +1,29 @@
+#jinja2:variable_start_string:'<<', variable_end_string:'>>'
+bind_addr  = "0.0.0.0"
+datacenter = "<< datacenter >>"
+data_dir   = "/opt/nomad"
+
+advertise {
+  http = "{{ GetInterfaceIP `eth0` }}"
+  rpc  = "{{ GetInterfaceIP `eth0` }}"
+  serf = "{{ GetInterfaceIP `eth0` }}"
+}
+
+client {
+  enabled = true
+}
+
+server {
+  enabled          = true
+  bootstrap_expect = "1"
+}
+
+plugin "docker" {
+  config {
+    volumes {
+      enabled      = true
+      selinuxlabel = "z"
+    }
+    allow_privileged = true
+  }
+}

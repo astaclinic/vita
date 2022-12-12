@@ -1,0 +1,134 @@
+---
+- name: Provision MongoDB Enterprise instance on Lightsail
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Pause for init script installation
+      ansible.builtin.pause:
+        seconds: 90
+
+    - name: Generate MongoDB Key
+      ansible.builtin.shell: openssl rand -base64 741 > /etc/mongodb.key
+      become: true
+
+    - name: Create container data directory
+      ansible.builtin.file:
+        dest: /data/mongo-{{item}}/config
+        owner: admin
+        group: admin
+        state: directory
+        mode: 0755
+      loop:
+        - a
+        - b
+        - c
+      become: true
+
+    - name: Save MongoDB Key file.
+      ansible.builtin.copy:
+        remote_src: true
+        src: /etc/mongodb.key
+        dest: /data/mongo-{{item}}/config/mongodb.key
+        owner: admin
+        group: admin
+        mode: 0600
+      loop:
+        - a
+        - b
+        - c
+
+    - name: Copy mongo config
+      ansible.builtin.copy:
+        src: config/mongod.conf
+        dest: /data/mongo-{{item}}/config/mongod.conf
+        owner: admin
+        group: admin
+        mode: 0644
+      loop:
+        - a
+        - b
+        - c
+
+    - name: Create Consul data directory
+      ansible.builtin.file:
+        dest: /opt/consul/
+        owner: consul
+        group: consul
+        state: directory
+        mode: 0755
+
+    - name: Copy Consul configuration
+      ansible.builtin.template:
+        src: templates/consul.hcl.j2
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: 0644
+      become: true
+
+    - name: Create Consul environment file
+      ansible.builtin.copy:
+        content: ""
+        dest: /etc/consul.d/consul.env
+        owner: consul
+        group: consul
+        mode: 0644
+      become: true
+
+    - name: Enable and start Consul
+      ansible.builtin.systemd:
+        name: consul
+        state: started
+        enabled: true
+      become: true
+
+    - name: Create Nomad data directory
+      ansible.builtin.file:
+        dest: /opt/nomad/
+        owner: nomad
+        group: nomad
+        state: directory
+        mode: 0755
+      become: true
+
+    - name: Copy Nomad configuration
+      ansible.builtin.template:
+        src: templates/nomad.hcl.j2
+        dest: /etc/nomad.d/nomad.hcl
+        owner: nomad
+        group: nomad
+        mode: 0644
+      become: true
+
+    - name: Create Nomad environment file
+      ansible.builtin.copy:
+        content: ""
+        dest: /etc/nomad.d/nomad.env
+        owner: nomad
+        group: nomad
+        mode: 0644
+      become: true
+
+    - name: Enable and start Nomad
+      ansible.builtin.systemd:
+        name: nomad
+        state: started
+        enabled: true
+      become: true
+
+    - name: Copy Nomad configuration
+      ansible.builtin.template:
+        src: templates/nomad.hcl.j2
+        dest: /etc/nomad.d/nomad.hcl
+        owner: nomad
+        group: nomad
+        mode: 0644
+      become: true
+
+    - name: Create job
+      community.general.nomad_job:
+        host: "{{ ansible_eth0.ipv4.address }}"
+        state: present
+        content: "{{ lookup('template', 'templates/mongodb.nomad.hcl.j2', variable_start_string='<<' , variable_end_string='>>' )}}"
+        timeout: 300
+        use_ssl: false
