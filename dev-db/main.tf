@@ -1,8 +1,8 @@
 resource "aws_lightsail_instance" "vita_db" {
-  name              = "mongo-enterprise"
-  availability_zone = "ap-southeast-1a"
-  blueprint_id      = "debian_11"
-  bundle_id         = "small_2_0"
+  name              = var.instance_name
+  availability_zone = var.instance_availability_zone
+  blueprint_id      = var.instance_blueprint_id
+  bundle_id         = var.instance_bundle_id
   key_pair_name     = aws_lightsail_key_pair.vita_db_key.name
   user_data         = <<-EOT
   #!/bin/bash
