@@ -32,6 +32,17 @@
       ansible.builtin.shell: openssl rand -base64 741 > /etc/mongodb.key
       become: true
 
+    - name: Create container data directory
+      when: not item.stat.exists
+      ansible.builtin.file:
+        dest: /data/mongo-{{item.item}}/config
+        owner: admin
+        group: admin
+        state: directory
+        mode: 0755
+      with_items: "{{mongo_config_exist.results}}"
+      become: true
+
     - name: Save MongoDB Key file.
       when: not mongo_key_exist.stat.exists
       ansible.builtin.copy:
@@ -46,19 +57,8 @@
         - b
         - c
 
-    - name: Create container data directory
-      when: not {{item.stat.exists}}
-      ansible.builtin.file:
-        dest: /data/mongo-{{item}}/config
-        owner: admin
-        group: admin
-        state: directory
-        mode: 0755
-      loop: "{{mongo_config_exist.results}}"
-      become: true
-
     - name: Copy Mongo config
-      when: not {{item.stat.exists}}
+      when: not item.stat.exists
       ansible.builtin.copy:
         src: config/mongod.conf
         dest: /data/mongo-{{item.item}}/config/mongod.conf
@@ -79,6 +79,7 @@
         group: consul
         state: directory
         mode: 0755
+      become: true
 
     - name: Copy Consul configuration
       when: not consul_config_exist.stat.exists
@@ -152,14 +153,14 @@
         timeout: 300
         use_ssl: false
 
-    - name: Wait job is deployed successfully
-      uri:
-        url: "http://{{ ansible_eth0.ipv4.address }}:4646/v1/job/mongo"
+    - name: Get deployment
+      ansible.builtin.uri:
+        url: "http://{{ ansible_eth0.ipv4.address }}:4646/v1/job/mongo/deployments"
         return_content: yes
         validate_certs: no
         body_format: json
         status_code:
           - 200
       register: uri_output
-      until: uri_output.json.Status == "running"
+      until: "{{ ['mongo-a', 'mongo-b', 'mongo-c'] | map('extract', uri_output.json.0.TaskGroups, ['HealthyAllocs']) | join('') == '111' }}"
       retries: 24 # Retries for 24 * 5 seconds = 120 seconds = 2 minutesdelay: 5 # Every 5 seconds
