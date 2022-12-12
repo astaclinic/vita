@@ -16,9 +16,9 @@ jobs:
   terraform:
     name: "Terraform"
     runs-on: ubuntu-latest
-      defaults:
-        run:
-          working-directory: dev-db
+    defaults:
+      run:
+        working-directory: dev-db
     env:
       AWS_REGION: ap-southeast-1
     steps:
