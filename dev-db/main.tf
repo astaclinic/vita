@@ -62,12 +62,20 @@ ${aws_lightsail_static_ip.vita_db_ip.ip_address}
 [${aws_lightsail_instance.vita_db.name}:vars]
 ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
   EOT
+}
 
+resource "null_resource" "lightsail_provisioner" {
+  triggers = {
+    inventory_hash = filesha256(local_file.ansible_inventory.content)
+  }
   provisioner "local-exec" {
     command = <<-EOT
-      ansible-playbook -i ${self.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
+      ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
     EOT
   }
+  depends_on = [
+    local_file.ansible_inventory
+  ]
 }
 
 resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
