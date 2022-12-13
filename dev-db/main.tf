@@ -22,7 +22,7 @@ resource "aws_lightsail_instance" "vita_db" {
 
   # installation
   sudo apt-get -y update
-  sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin nomad consul python3-pip
+  sudo apt-get -y install docker-ce docker-ce-cli containerd.io nomad consul python3-pip
   pip install python-nomad
 
   # remove default config file
