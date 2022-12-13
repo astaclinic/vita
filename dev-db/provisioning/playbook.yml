@@ -162,5 +162,5 @@
         status_code:
           - 200
       register: uri_output
-      until: "{{ ['mongo-a', 'mongo-b', 'mongo-c'] | map('extract', uri_output.json.0.TaskGroups, ['HealthyAllocs']) | join('') == '111' }}"
+      until: "{{ uri_output.json.0.TaskGroups.keys() | map('extract', uri_output.json.0.TaskGroups, ['HealthyAllocs']) | join('') == '111' }}"
       retries: 24 # Retries for 24 * 5 seconds = 120 seconds = 2 minutesdelay: 5 # Every 5 seconds
