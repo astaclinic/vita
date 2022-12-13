@@ -25,3 +25,14 @@ variable "instance_bundle_id" {
   type    = string
   default = "small_2_0"
 }
+
+variable "mongodb_username" {
+  type    = string
+  default = "admin"
+}
+
+variable "mongodb_password" {
+  type    = string
+  default = "Abcd1234"
+}
+

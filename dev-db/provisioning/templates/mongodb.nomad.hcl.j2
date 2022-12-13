@@ -38,8 +38,8 @@ job "mongo" {
       }
       env {
         TZ = "Asia/Hong_Kong"
-        MONGO_INITDB_ROOT_USERNAME = "admin"
-        MONGO_INITDB_ROOT_PASSWORD ="Abcd1234"
+        MONGO_INITDB_ROOT_USERNAME = "<< mongodb_username >>"
+        MONGO_INITDB_ROOT_PASSWORD = "<< mongodb_password >>"
       }
     }
   }
@@ -99,8 +99,8 @@ job "mongo" {
       }
       env {
         TZ = "Asia/Hong_Kong"
-        MONGO_INITDB_ROOT_USERNAME = "admin"
-        MONGO_INITDB_ROOT_PASSWORD ="Abcd1234"
+        MONGO_INITDB_ROOT_USERNAME = "<< mongodb_username >>"
+        MONGO_INITDB_ROOT_PASSWORD = "<< mongodb_password >>"
       }
     }
   }
@@ -159,8 +159,8 @@ job "mongo" {
       }
       env {
         TZ = "Asia/Hong_Kong"
-        MONGO_INITDB_ROOT_USERNAME = "admin"
-        MONGO_INITDB_ROOT_PASSWORD ="Abcd1234"
+        MONGO_INITDB_ROOT_USERNAME = "<< mongodb_username >>"
+        MONGO_INITDB_ROOT_PASSWORD = "<< mongodb_password >>"
       }
     }
   }
