@@ -66,7 +66,7 @@ ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
 
 resource "null_resource" "lightsail_provisioner" {
   triggers = {
-    inventory_hash = filesha256(file(local_file.ansible_inventory.filename))
+    inventory_hash = filesha256(local_file.ansible_inventory.content)
   }
   provisioner "local-exec" {
     command = <<-EOT
