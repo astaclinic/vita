@@ -1,0 +1,167 @@
+job "mongo" {
+  datacenters = ["<< datacenter >>"]
+
+  group "mongo-a" {
+    network {
+      mode = "bridge"
+      port "mongo-a" {
+        static = 27017
+        to = 27017
+      }
+    }
+    task "mongo-a" {
+      driver = "docker"
+      service {
+        check {
+          type     = "script"
+          name     = "mongodb_check"
+          command  = "sh"
+          args     = ["-c", "mongo --eval 'db.runCommand(\"ping\").ok' localhost:27017 --quiet"]
+          interval = "30s"
+          timeout  = "3s"
+        }
+      }
+      config {
+        image = "ghcr.io/astaclinic/mongo-enterprise"
+        ports = ["mongo-a"]
+        auth {
+          username = "<< registry_username >>"
+          password = "<< registry_password >>"
+        }
+        args = [
+          "/usr/bin/mongod", "--config", "/etc/mongo/mongod.conf", "--profile=2"
+        ]
+        volumes = [
+          "/data/mongo-a/data:/data/db",
+          "/data/mongo-a/config:/etc/mongo"
+        ]
+      }
+      env {
+        TZ = "Asia/Hong_Kong"
+        MONGO_INITDB_ROOT_USERNAME = "admin"
+        MONGO_INITDB_ROOT_PASSWORD ="Abcd1234"
+      }
+    }
+  }
+
+
+  group "mongo-b" {
+    network {
+      mode = "bridge"
+      port "mongo-b" {
+        static = 27018
+        to = 27017
+      }
+    }
+
+    task "wait-for-host" {
+      lifecycle {
+        hook = "prestart"
+        sidecar = false
+      }
+      driver = "docker"
+      config {
+        image = "busybox:stable"
+        command = "sh"
+        args = ["-c", "while ! nc -z << ansible_eth0.ipv4.address >> 27017 ; do sleep 1; done"]
+      }
+    }
+
+    task "mongo-b" {
+      driver = "docker"
+      service {
+        check {
+          type     = "script"
+          name     = "mongodb_check"
+          command  = "sh"
+          args     = ["-c", "mongo --eval 'db.runCommand(\"ping\").ok' localhost:27017 --quiet"]
+          interval = "30s"
+          timeout  = "3s"
+        }
+      }
+      config {
+        image = "ghcr.io/astaclinic/mongo-enterprise"
+        ports = ["mongo-b"]
+        auth {
+          username = "<< registry_username >>"
+          password = "<< registry_password >>"
+        }
+        args = [
+          "/usr/bin/mongod", "--config", "/etc/mongo/mongod.conf", "--profile=2"
+        ]
+        volumes = [
+          "/data/mongo-b/data:/data/db",
+          "/data/mongo-b/config:/etc/mongo"
+        ]
+        extra_hosts = [
+          "0.gateway.asta.clinic:<< ansible_eth0.ipv4.address >>"
+        ]
+      }
+      env {
+        TZ = "Asia/Hong_Kong"
+        MONGO_INITDB_ROOT_USERNAME = "admin"
+        MONGO_INITDB_ROOT_PASSWORD ="Abcd1234"
+      }
+    }
+  }
+
+  group "mongo-c" {
+    network {
+      mode = "bridge"
+      port "mongo-c" {
+        static = 27019
+        to = 27017
+      }
+    }
+
+    task "wait-for-host" {
+      lifecycle {
+        hook = "prestart"
+        sidecar = false
+      }
+      driver = "docker"
+      config {
+        image = "busybox:stable"
+        command = "sh"
+        args = ["-c", "while ! nc -z << ansible_eth0.ipv4.address >> 27017 ; do sleep 1; done"]
+      }
+    }
+
+    task "mongo-c" {
+      driver = "docker"
+      service {
+        check {
+          type     = "script"
+          name     = "mongodb_check"
+          command  = "sh"
+          args     = ["-c", "mongo --eval 'db.runCommand(\"ping\").ok' localhost:27017 --quiet"]
+          interval = "30s"
+          timeout  = "3s"
+        }
+      }
+      config {
+        image = "ghcr.io/astaclinic/mongo-enterprise"
+        ports = ["mongo-c"]
+        auth {
+          username = "<< registry_username >>"
+          password = "<< registry_password >>"
+        }
+        args = [
+          "/usr/bin/mongod",  "--config", "/etc/mongo/mongod.conf" ,"--profile=2"
+        ]
+        volumes = [
+          "/data/mongo-c/data:/data/db",
+          "/data/mongo-c/config:/etc/mongo"
+        ]
+        extra_hosts = [
+          "0.gateway.asta.clinic:<< ansible_eth0.ipv4.address >>"
+        ]
+      }
+      env {
+        TZ = "Asia/Hong_Kong"
+        MONGO_INITDB_ROOT_USERNAME = "admin"
+        MONGO_INITDB_ROOT_PASSWORD ="Abcd1234"
+      }
+    }
+  }
+}

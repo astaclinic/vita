@@ -1,0 +1,166 @@
+---
+- name: Provision MongoDB Enterprise instance on Lightsail
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Mongo key exist
+      stat:
+        path: "/etc/mongodb.key"
+      register: mongo_key_exist
+
+    - name: Nomad config exist
+      stat:
+        path: "/etc/nomad.d/nomad.hcl"
+      register: nomad_config_exist
+
+    - name: Consul config exist
+      stat:
+        path: "/etc/consul.d/consul.hcl"
+      register: consul_config_exist
+
+    - name: Mongo config exist
+      stat:
+        path: /data/mongo-{{item}}/config/mongod.conf
+      register: mongo_config_exist
+      with_items:
+        - a
+        - b
+        - c
+
+    - name: Generate MongoDB Key
+      when: not mongo_key_exist.stat.exists
+      ansible.builtin.shell: openssl rand -base64 741 > /etc/mongodb.key
+      become: true
+
+    - name: Create container data directory
+      when: not item.stat.exists
+      ansible.builtin.file:
+        dest: /data/mongo-{{item.item}}/config
+        owner: admin
+        group: admin
+        state: directory
+        mode: 0755
+      with_items: "{{mongo_config_exist.results}}"
+      become: true
+
+    - name: Save MongoDB Key file.
+      when: not mongo_key_exist.stat.exists
+      ansible.builtin.copy:
+        remote_src: true
+        src: /etc/mongodb.key
+        dest: /data/mongo-{{item}}/config/mongodb.key
+        owner: admin
+        group: admin
+        mode: 0600
+      loop:
+        - a
+        - b
+        - c
+
+    - name: Copy Mongo config
+      when: not item.stat.exists
+      ansible.builtin.copy:
+        src: config/mongod.conf
+        dest: /data/mongo-{{item.item}}/config/mongod.conf
+        owner: admin
+        group: admin
+        mode: 0644
+      with_items: "{{mongo_config_exist.results}}"
+
+    - name: Pause for init script installation
+      ansible.builtin.pause:
+        seconds: 90
+
+    - name: Create Consul data directory
+      when: not consul_config_exist.stat.exists
+      ansible.builtin.file:
+        dest: /opt/consul/
+        owner: consul
+        group: consul
+        state: directory
+        mode: 0755
+      become: true
+
+    - name: Copy Consul configuration
+      when: not consul_config_exist.stat.exists
+      ansible.builtin.template:
+        src: templates/consul.hcl.j2
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: 0644
+      become: true
+
+    - name: Create Consul environment file
+      when: not consul_config_exist.stat.exists
+      ansible.builtin.copy:
+        content: ""
+        dest: /etc/consul.d/consul.env
+        owner: consul
+        group: consul
+        mode: 0644
+      become: true
+
+    - name: Enable and start Consul
+      ansible.builtin.systemd:
+        name: consul
+        state: started
+        enabled: true
+      become: true
+
+    - name: Create Nomad data directory
+      when: not nomad_config_exist.stat.exists
+      ansible.builtin.file:
+        dest: /opt/nomad/
+        owner: nomad
+        group: nomad
+        state: directory
+        mode: 0755
+      become: true
+
+    - name: Copy Nomad configuration
+      when: not nomad_config_exist.stat.exists
+      ansible.builtin.template:
+        src: templates/nomad.hcl.j2
+        dest: /etc/nomad.d/nomad.hcl
+        owner: nomad
+        group: nomad
+        mode: 0644
+      become: true
+
+    - name: Create Nomad environment file
+      when: not nomad_config_exist.stat.exists
+      ansible.builtin.copy:
+        content: ""
+        dest: /etc/nomad.d/nomad.env
+        owner: nomad
+        group: nomad
+        mode: 0644
+      become: true
+
+    - name: Enable and start Nomad
+      ansible.builtin.systemd:
+        name: nomad
+        state: started
+        enabled: true
+      become: true
+
+    - name: Create job
+      community.general.nomad_job:
+        host: "{{ ansible_eth0.ipv4.address }}"
+        state: present
+        content: "{{ lookup('template', 'templates/mongodb.nomad.hcl.j2', variable_start_string='<<' , variable_end_string='>>' )}}"
+        timeout: 300
+        use_ssl: false
+
+    - name: Get deployment
+      ansible.builtin.uri:
+        url: "http://{{ ansible_eth0.ipv4.address }}:4646/v1/job/mongo/deployments"
+        return_content: yes
+        validate_certs: no
+        body_format: json
+        status_code:
+          - 200
+      register: uri_output
+      until: "{{ uri_output.json.0.TaskGroups.keys() | map('extract', uri_output.json.0.TaskGroups, ['HealthyAllocs']) | join('') == '111' }}"
+      retries: 24 # Retries for 24 * 5 seconds = 120 seconds = 2 minutesdelay: 5 # Every 5 seconds
