@@ -64,7 +64,7 @@ ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
   EOT
 }
 
-resource "null_resource" "lightsail_provisioner"{
+resource "null_resource" "lightsail_provisioner" {
   triggers = {
     inventory_hash = filesha256(file(local_file.ansible_inventory.filename))
   }
@@ -73,7 +73,7 @@ resource "null_resource" "lightsail_provisioner"{
       ansible-playbook -i ${self.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
     EOT
   }
-} 
+}
 
 resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
   instance_name = aws_lightsail_instance.vita_db.name
