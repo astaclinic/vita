@@ -22,7 +22,7 @@ resource "aws_lightsail_instance" "vita_db" {
 
   # installation
   sudo apt-get -y update
-  sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin nomad consul python3-pip
+  sudo apt-get -y install docker-ce docker-ce-cli containerd.io nomad consul python3-pip
   pip install python-nomad
 
   # remove default config file
@@ -62,13 +62,18 @@ ${aws_lightsail_static_ip.vita_db_ip.ip_address}
 [${aws_lightsail_instance.vita_db.name}:vars]
 ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
   EOT
+}
 
+resource "null_resource" "lightsail_provisioner"{
+  triggers = {
+    inventory_hash = filesha256(file(local_file.ansible_inventory.filename))
+  }
   provisioner "local-exec" {
     command = <<-EOT
       ansible-playbook -i ${self.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
     EOT
   }
-}
+} 
 
 resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
   instance_name = aws_lightsail_instance.vita_db.name
