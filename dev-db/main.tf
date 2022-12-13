@@ -65,7 +65,7 @@ ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
 
   provisioner "local-exec" {
     command = <<-EOT
-      ansible-playbook -i ${self.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}"}'
+      ansible-playbook -i ${self.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
     EOT
   }
 }
@@ -81,6 +81,11 @@ resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
     protocol  = "tcp"
     from_port = 22
     to_port   = 22
+  }
+  port_info {
+    protocol  = "tcp"
+    from_port = 4646
+    to_port   = 4646
   }
 }
 

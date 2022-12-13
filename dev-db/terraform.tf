@@ -1,4 +1,11 @@
 terraform {
+  cloud {
+    organization = "astaclinic"
+
+    workspaces {
+      name = "vita"
+    }
+  }
   required_providers {
     aws = {
       source  = "hashicorp/aws"
