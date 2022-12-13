@@ -73,6 +73,9 @@ resource "null_resource" "lightsail_provisioner" {
       ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
     EOT
   }
+  depends_on = [
+    local_file.ansible_inventory
+  ]
 }
 
 resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
