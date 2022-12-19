@@ -22,16 +22,14 @@ resource "aws_lightsail_instance" "vita_db" {
 
   # installation
   sudo apt-get -y update
-  sudo apt-get -y install docker-ce docker-ce-cli containerd.io nomad consul python3-pip
+  sudo apt-get -y install docker-ce docker-ce-cli containerd.io nomad python3-pip
   pip install python-nomad
 
   # remove default config file
-  sudo rm /etc/nomad.d/nomad.hcl /etc/consul.d/consul.hcl
+  sudo rm /etc/nomad.d/nomad.hcl
 
-  # install cni plugin
-  curl -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/v1.0.0/cni-plugins-linux-$( [ $(uname -m) = aarch64 ] && echo arm64 || echo amd64)"-v1.0.0.tgz
-  sudo mkdir -p /opt/cni/bin
-  sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
+  # indicate program exited
+  touch /tmp/finished
   EOT
 }
 
@@ -92,5 +90,3 @@ resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
 output "ip" {
   value = aws_lightsail_static_ip.vita_db_ip.ip_address
 }
-
-

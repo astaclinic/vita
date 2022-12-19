@@ -1,22 +1,51 @@
 job "mongo" {
-  datacenters = ["<< datacenter >>"]
+  datacenters = ["[[ datacenter ]]"]
 
   group "mongo-a" {
     network {
-      mode = "bridge"
       port "mongo-a" {
         static = 27017
         to     = 27017
       }
     }
+    task "cluster-init" {
+      driver = "docker"
+      lifecycle {
+        hook    = "poststart"
+        sidecar = false
+      }
+      config {
+        image = "ghcr.io/astaclinic/mongo-enterprise"
+        auth {
+          username = "[[ registry_username ]]"
+          password = "[[ registry_password ]]"
+        }
+        args = [
+          "sh", "local/init.sh"
+        ]
+      }
+      template {
+        data        = <<EOH
+mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ ansible_eth0.ipv4.address ]]:27017" --eval "rs.status()"
+RESULT=$?
+if [ $RESULT -eq 0 ]; then
+  echo "have inited before, end of program.";
+  exit 0
+else
+  mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ ansible_eth0.ipv4.address ]]:27017" --eval "rs.initiate({ _id: \"rs0\", members: [{_id: 0, host: \"[[ ansible_eth0.ipv4.address ]]:27017\"},{_id: 1, host: \"[[ ansible_eth0.ipv4.address ]]:27018\"},{_id: 2, host: \"[[ ansible_eth0.ipv4.address ]]:27019\"}]});cfg = rs.conf();cfg.members[1].priority = 0;cfg.members[2].priority = 0;rs.reconfig(cfg)"
+fi
+EOH
+        destination = "local/init.sh"
+      }
+    }
     task "mongo-a" {
       driver = "docker"
       service {
+        provider = "nomad"
         check {
-          type     = "script"
+          type     = "tcp"
           name     = "mongodb_check"
-          command  = "sh"
-          args     = ["-c", "mongo --eval 'db.runCommand(\"ping\").ok' localhost:27017 --quiet"]
+          port     = "mongo-a"
           interval = "30s"
           timeout  = "3s"
         }
@@ -25,8 +54,8 @@ job "mongo" {
         image = "ghcr.io/astaclinic/mongo-enterprise"
         ports = ["mongo-a"]
         auth {
-          username = "<< registry_username >>"
-          password = "<< registry_password >>"
+          username = "[[ registry_username ]]"
+          password = "[[ registry_password ]]"
         }
         args = [
           "--config", "/etc/mongo/mongod.conf", "--profile=2"
@@ -38,8 +67,8 @@ job "mongo" {
       }
       env {
         TZ                         = "Asia/Hong_Kong"
-        MONGO_INITDB_ROOT_USERNAME = "<< mongodb_username >>"
-        MONGO_INITDB_ROOT_PASSWORD = "<< mongodb_password >>"
+        MONGO_INITDB_ROOT_USERNAME = "[[ mongodb_username ]]"
+        MONGO_INITDB_ROOT_PASSWORD = "[[ mongodb_password ]]"
       }
     }
   }
@@ -47,7 +76,6 @@ job "mongo" {
 
   group "mongo-b" {
     network {
-      mode = "bridge"
       port "mongo-b" {
         static = 27018
         to     = 27017
@@ -63,18 +91,18 @@ job "mongo" {
       config {
         image   = "busybox:stable"
         command = "sh"
-        args    = ["-c", "while ! nc -z << ansible_eth0.ipv4.address >> 27017 ; do sleep 1; done"]
+        args    = ["-c", "while ! nc -z [[ ansible_eth0.ipv4.address ]] 27017 ; do sleep 1; done"]
       }
     }
 
     task "mongo-b" {
       driver = "docker"
       service {
+        provider = "nomad"
         check {
-          type     = "script"
+          type     = "tcp"
           name     = "mongodb_check"
-          command  = "sh"
-          args     = ["-c", "mongo --eval 'db.runCommand(\"ping\").ok' localhost:27017 --quiet"]
+          port     = "mongo-b"
           interval = "30s"
           timeout  = "3s"
         }
@@ -83,8 +111,8 @@ job "mongo" {
         image = "ghcr.io/astaclinic/mongo-enterprise"
         ports = ["mongo-b"]
         auth {
-          username = "<< registry_username >>"
-          password = "<< registry_password >>"
+          username = "[[ registry_username ]]"
+          password = "[[ registry_password ]]"
         }
         args = [
           "--config", "/etc/mongo/mongod.conf", "--profile=2"
@@ -94,20 +122,19 @@ job "mongo" {
           "/data/mongo-b/config:/etc/mongo"
         ]
         extra_hosts = [
-          "0.gateway.asta.clinic:<< ansible_eth0.ipv4.address >>"
+          "0.gateway.asta.clinic:[[ ansible_eth0.ipv4.address ]]"
         ]
       }
       env {
         TZ                         = "Asia/Hong_Kong"
-        MONGO_INITDB_ROOT_USERNAME = "<< mongodb_username >>"
-        MONGO_INITDB_ROOT_PASSWORD = "<< mongodb_password >>"
+        MONGO_INITDB_ROOT_USERNAME = "[[ mongodb_username ]]"
+        MONGO_INITDB_ROOT_PASSWORD = "[[ mongodb_password ]]"
       }
     }
   }
 
   group "mongo-c" {
     network {
-      mode = "bridge"
       port "mongo-c" {
         static = 27019
         to     = 27017
@@ -123,18 +150,18 @@ job "mongo" {
       config {
         image   = "busybox:stable"
         command = "sh"
-        args    = ["-c", "while ! nc -z << ansible_eth0.ipv4.address >> 27017 ; do sleep 1; done"]
+        args    = ["-c", "while ! nc -z [[ ansible_eth0.ipv4.address ]] 27017 ; do sleep 1; done"]
       }
     }
 
     task "mongo-c" {
       driver = "docker"
       service {
+        provider = "nomad"
         check {
-          type     = "script"
+          type     = "tcp"
           name     = "mongodb_check"
-          command  = "sh"
-          args     = ["-c", "mongo --eval 'db.runCommand(\"ping\").ok' localhost:27017 --quiet"]
+          port     = "mongo-c"
           interval = "30s"
           timeout  = "3s"
         }
@@ -143,8 +170,8 @@ job "mongo" {
         image = "ghcr.io/astaclinic/mongo-enterprise"
         ports = ["mongo-c"]
         auth {
-          username = "<< registry_username >>"
-          password = "<< registry_password >>"
+          username = "[[ registry_username ]]"
+          password = "[[ registry_password ]]"
         }
         args = [
           "--config", "/etc/mongo/mongod.conf", "--profile=2"
@@ -154,13 +181,13 @@ job "mongo" {
           "/data/mongo-c/config:/etc/mongo"
         ]
         extra_hosts = [
-          "0.gateway.asta.clinic:<< ansible_eth0.ipv4.address >>"
+          "0.gateway.asta.clinic:[[ ansible_eth0.ipv4.address ]]"
         ]
       }
       env {
         TZ                         = "Asia/Hong_Kong"
-        MONGO_INITDB_ROOT_USERNAME = "<< mongodb_username >>"
-        MONGO_INITDB_ROOT_PASSWORD = "<< mongodb_password >>"
+        MONGO_INITDB_ROOT_USERNAME = "[[ mongodb_username ]]"
+        MONGO_INITDB_ROOT_PASSWORD = "[[ mongodb_password ]]"
       }
     }
   }

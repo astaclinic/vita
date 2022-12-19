@@ -13,11 +13,6 @@
         path: "/etc/nomad.d/nomad.hcl"
       register: nomad_config_exist
 
-    - name: Consul config exist
-      stat:
-        path: "/etc/consul.d/consul.hcl"
-      register: consul_config_exist
-
     - name: Mongo config exist
       stat:
         path: /data/mongo-{{item}}/config/mongod.conf
@@ -68,46 +63,12 @@
         mode: 0644
       with_items: "{{mongo_config_exist.results}}"
 
-    - name: Pause for init script installation
-      ansible.builtin.pause:
-        seconds: 90
-
-    - name: Create Consul data directory
-      when: not consul_config_exist.stat.exists
-      ansible.builtin.file:
-        dest: /opt/consul/
-        owner: consul
-        group: consul
-        state: directory
-        mode: 0755
-      become: true
-
-    - name: Copy Consul configuration
-      when: not consul_config_exist.stat.exists
-      ansible.builtin.template:
-        src: templates/consul.hcl.j2
-        dest: /etc/consul.d/consul.hcl
-        owner: consul
-        group: consul
-        mode: 0644
-      become: true
-
-    - name: Create Consul environment file
-      when: not consul_config_exist.stat.exists
-      ansible.builtin.copy:
-        content: ""
-        dest: /etc/consul.d/consul.env
-        owner: consul
-        group: consul
-        mode: 0644
-      become: true
-
-    - name: Enable and start Consul
-      ansible.builtin.systemd:
-        name: consul
-        state: started
-        enabled: true
-      become: true
+    - name: Ensure user data script have finished
+      stat:
+        path: "/tmp/finished"
+      register: finished
+      until: finished.stat.exists
+      retries: 24 # Retries for 24 * 5 seconds = 120 seconds = 2 minutesdelay: 5 # Every 5 seconds
 
     - name: Create Nomad data directory
       when: not nomad_config_exist.stat.exists
@@ -150,7 +111,7 @@
       community.general.nomad_job:
         host: "{{ ansible_eth0.ipv4.address }}"
         state: present
-        content: "{{ lookup('template', 'templates/mongodb.nomad.hcl.j2', variable_start_string='<<' , variable_end_string='>>' )}}"
+        content: "{{ lookup('template', 'templates/mongodb.nomad.hcl.j2', variable_start_string='[[' , variable_end_string=']]' )}}"
         timeout: 300
         use_ssl: false
 
