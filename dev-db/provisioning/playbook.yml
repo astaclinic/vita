@@ -52,6 +52,7 @@
         owner: 999
         group: admin
         mode: 0600
+      become: true
       loop:
         - a
         - b
