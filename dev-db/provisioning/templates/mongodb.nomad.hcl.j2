@@ -29,7 +29,7 @@ job "mongo" {
           password = "<< registry_password >>"
         }
         args = [
-          "/usr/bin/mongod", "--config", "/etc/mongo/mongod.conf", "--profile=2"
+          --config", "/etc/mongo/mongod.conf", "--profile=2"
         ]
         volumes = [
           "/data/mongo-a/data:/data/db",
@@ -87,7 +87,7 @@ job "mongo" {
           password = "<< registry_password >>"
         }
         args = [
-          "/usr/bin/mongod", "--config", "/etc/mongo/mongod.conf", "--profile=2"
+          --config", "/etc/mongo/mongod.conf", "--profile=2"
         ]
         volumes = [
           "/data/mongo-b/data:/data/db",
@@ -147,7 +147,7 @@ job "mongo" {
           password = "<< registry_password >>"
         }
         args = [
-          "/usr/bin/mongod",  "--config", "/etc/mongo/mongod.conf" ,"--profile=2"
+          "--config", "/etc/mongo/mongod.conf" ,"--profile=2"
         ]
         volumes = [
           "/data/mongo-c/data:/data/db",

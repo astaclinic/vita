@@ -49,7 +49,7 @@
         remote_src: true
         src: /etc/mongodb.key
         dest: /data/mongo-{{item}}/config/mongodb.key
-        owner: admin
+        owner: 999
         group: admin
         mode: 0600
       loop:
