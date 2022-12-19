@@ -2,25 +2,16 @@
 - name: Provision MongoDB Enterprise instance on Lightsail
   hosts: all
   gather_facts: true
+  vars:
+    mongo_instances:
+      - a
+      - b
+      - c
   tasks:
     - name: Mongo key exist
       stat:
         path: "/etc/mongodb.key"
       register: mongo_key_exist
-
-    - name: Nomad config exist
-      stat:
-        path: "/etc/nomad.d/nomad.hcl"
-      register: nomad_config_exist
-
-    - name: Mongo config exist
-      stat:
-        path: /data/mongo-{{item}}/config/mongod.conf
-      register: mongo_config_exist
-      with_items:
-        - a
-        - b
-        - c
 
     - name: Generate MongoDB Key
       when: not mongo_key_exist.stat.exists
@@ -28,14 +19,13 @@
       become: true
 
     - name: Create container data directory
-      when: not item.stat.exists
       ansible.builtin.file:
-        dest: /data/mongo-{{item.item}}/config
+        dest: /data/mongo-{{item}}/config
         owner: admin
         group: admin
         state: directory
         mode: 0755
-      with_items: "{{mongo_config_exist.results}}"
+      loop: "{{mongo_instances}}"
       become: true
 
     - name: Save MongoDB Key file.
@@ -48,20 +38,16 @@
         group: admin
         mode: 0600
       become: true
-      loop:
-        - a
-        - b
-        - c
+      loop: "{{mongo_instances}}"
 
     - name: Copy Mongo config
-      when: not item.stat.exists
       ansible.builtin.copy:
         src: config/mongod.conf
-        dest: /data/mongo-{{item.item}}/config/mongod.conf
+        dest: /data/mongo-{{item}}/config/mongod.conf
         owner: admin
         group: admin
         mode: 0644
-      with_items: "{{mongo_config_exist.results}}"
+      loop: "{{mongo_instances}}"
 
     - name: Ensure user data script have finished
       stat:
@@ -72,7 +58,6 @@
       become: true
 
     - name: Create Nomad data directory
-      when: not nomad_config_exist.stat.exists
       ansible.builtin.file:
         dest: /opt/nomad/
         owner: nomad
@@ -82,7 +67,6 @@
       become: true
 
     - name: Copy Nomad configuration
-      when: not nomad_config_exist.stat.exists
       ansible.builtin.template:
         src: templates/nomad.hcl.j2
         dest: /etc/nomad.d/nomad.hcl
@@ -92,7 +76,6 @@
       become: true
 
     - name: Create Nomad environment file
-      when: not nomad_config_exist.stat.exists
       ansible.builtin.copy:
         content: ""
         dest: /etc/nomad.d/nomad.env
