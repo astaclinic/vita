@@ -22,16 +22,14 @@ resource "aws_lightsail_instance" "vita_db" {
 
   # installation
   sudo apt-get -y update
-  sudo apt-get -y install docker-ce docker-ce-cli containerd.io nomad consul python3-pip
+  sudo apt-get -y install docker-ce docker-ce-cli containerd.io nomad python3-pip
   pip install python-nomad
 
   # remove default config file
-  sudo rm /etc/nomad.d/nomad.hcl /etc/consul.d/consul.hcl
+  sudo rm /etc/nomad.d/nomad.hcl
 
-  # install cni plugin
-  curl -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/v1.0.0/cni-plugins-linux-$( [ $(uname -m) = aarch64 ] && echo arm64 || echo amd64)"-v1.0.0.tgz
-  sudo mkdir -p /opt/cni/bin
-  sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
+  # indicate program exited
+  touch /root/${aws_lightsail_key_pair.vita_db_key.id}
   EOT
 }
 
@@ -70,7 +68,7 @@ resource "null_resource" "lightsail_provisioner" {
   }
   provisioner "local-exec" {
     command = <<-EOT
-      ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
+      ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}", "key_id":"${aws_lightsail_key_pair.vita_db_key.id}"}'
     EOT
   }
 }
@@ -92,5 +90,3 @@ resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
 output "ip" {
   value = aws_lightsail_static_ip.vita_db_ip.ip_address
 }
-
-
