@@ -29,9 +29,14 @@ job "mongo" {
 mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ ansible_eth0.ipv4.address ]]:27017" --eval "rs.status()"
 RESULT=$?
 if [ $RESULT -eq 0 ]; then
-  echo "have inited before, end of program.";
+  echo "have inited before, exiting...";
   exit 0
 else
+  apt update -y
+  apt install -y netcat
+  while ! nc -z [[ ansible_eth0.ipv4.address ]] 27017 ; do sleep 1; done
+  while ! nc -z [[ ansible_eth0.ipv4.address ]] 27018 ; do sleep 1; done
+  while ! nc -z [[ ansible_eth0.ipv4.address ]] 27019 ; do sleep 1; done
   mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ ansible_eth0.ipv4.address ]]:27017" --eval "rs.initiate({ _id: \"rs0\", members: [{_id: 0, host: \"[[ ansible_eth0.ipv4.address ]]:27017\"},{_id: 1, host: \"[[ ansible_eth0.ipv4.address ]]:27018\"},{_id: 2, host: \"[[ ansible_eth0.ipv4.address ]]:27019\"}]});cfg = rs.conf();cfg.members[1].priority = 0;cfg.members[2].priority = 0;rs.reconfig(cfg)"
 fi
 EOH
@@ -82,19 +87,6 @@ EOH
       }
     }
 
-    task "wait-for-host" {
-      lifecycle {
-        hook    = "prestart"
-        sidecar = false
-      }
-      driver = "docker"
-      config {
-        image   = "busybox:stable"
-        command = "sh"
-        args    = ["-c", "while ! nc -z [[ ansible_eth0.ipv4.address ]] 27017 ; do sleep 1; done"]
-      }
-    }
-
     task "mongo-b" {
       driver = "docker"
       service {
@@ -138,19 +130,6 @@ EOH
       port "mongo-c" {
         static = 27019
         to     = 27017
-      }
-    }
-
-    task "wait-for-host" {
-      lifecycle {
-        hook    = "prestart"
-        sidecar = false
-      }
-      driver = "docker"
-      config {
-        image   = "busybox:stable"
-        command = "sh"
-        args    = ["-c", "while ! nc -z [[ ansible_eth0.ipv4.address ]] 27017 ; do sleep 1; done"]
       }
     }
 
