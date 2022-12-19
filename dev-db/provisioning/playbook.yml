@@ -65,10 +65,11 @@
 
     - name: Ensure user data script have finished
       stat:
-        path: "/tmp/finished"
+        path: "/root/{{key_id}}"
       register: finished
       until: finished.stat.exists
       retries: 24 # Retries for 24 * 5 seconds = 120 seconds = 2 minutesdelay: 5 # Every 5 seconds
+      become: true
 
     - name: Create Nomad data directory
       when: not nomad_config_exist.stat.exists

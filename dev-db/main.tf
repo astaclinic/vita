@@ -29,7 +29,7 @@ resource "aws_lightsail_instance" "vita_db" {
   sudo rm /etc/nomad.d/nomad.hcl
 
   # indicate program exited
-  touch /tmp/finished
+  touch /root/${aws_lightsail_key_pair.vita_db_key.id}
   EOT
 }
 
@@ -68,7 +68,7 @@ resource "null_resource" "lightsail_provisioner" {
   }
   provisioner "local-exec" {
     command = <<-EOT
-      ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}"}'
+      ansible-playbook -i ${local_file.ansible_inventory.filename} --private-key ${local_sensitive_file.private_key.filename} -u admin ${path.module}/provisioning/playbook.yml --extra-vars '{"datacenter":"apricot","registry_username":"${var.registry_username}", "registry_password":"${var.registry_password}", "mongodb_username":"${var.mongodb_username}", "mongodb_password":"${var.mongodb_password}", "key_id":"${aws_lightsail_key_pair.vita_db_key.id}"}'
     EOT
   }
 }
