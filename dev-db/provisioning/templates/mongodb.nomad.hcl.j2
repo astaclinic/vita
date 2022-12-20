@@ -26,7 +26,7 @@ job "mongo" {
       }
       template {
         data        = <<EOH
-mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ ansible_eth0.ipv4.address ]]:27017" --eval "rs.status()"
+mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ public_ip ]]:27017" --eval "rs.status()"
 RESULT=$?
 if [ $RESULT -eq 0 ]; then
   echo "have inited before, exiting...";
@@ -34,10 +34,10 @@ if [ $RESULT -eq 0 ]; then
 else
   apt update -y
   apt install -y netcat
-  while ! nc -z [[ ansible_eth0.ipv4.address ]] 27017 ; do sleep 1; done
-  while ! nc -z [[ ansible_eth0.ipv4.address ]] 27018 ; do sleep 1; done
-  while ! nc -z [[ ansible_eth0.ipv4.address ]] 27019 ; do sleep 1; done
-  mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ ansible_eth0.ipv4.address ]]:27017" --eval "rs.initiate({ _id: \"rs0\", members: [{_id: 0, host: \"[[ ansible_eth0.ipv4.address ]]:27017\"},{_id: 1, host: \"[[ ansible_eth0.ipv4.address ]]:27018\"},{_id: 2, host: \"[[ ansible_eth0.ipv4.address ]]:27019\"}]});cfg = rs.conf();cfg.members[1].priority = 0;cfg.members[2].priority = 0;rs.reconfig(cfg)"
+  while ! nc -z [[ public_ip ]] 27017 ; do sleep 1; done
+  while ! nc -z [[ public_ip ]] 27018 ; do sleep 1; done
+  while ! nc -z [[ public_ip ]] 27019 ; do sleep 1; done
+  mongosh "mongodb://[[ mongodb_username ]]:[[ mongodb_password ]]@[[ public_ip ]]:27017" --eval "rs.initiate({ _id: \"rs0\", members: [{_id: 0, host: \"[[ public_ip ]]:27017\"},{_id: 1, host: \"[[ public_ip ]]:27018\"},{_id: 2, host: \"[[ public_ip ]]:27019\"}]});cfg = rs.conf();cfg.members[1].priority = 0;cfg.members[2].priority = 0;rs.reconfig(cfg)"
 fi
 EOH
         destination = "local/init.sh"
@@ -114,7 +114,7 @@ EOH
           "/data/mongo-b/config:/etc/mongo"
         ]
         extra_hosts = [
-          "0.gateway.asta.clinic:[[ ansible_eth0.ipv4.address ]]"
+          "0.gateway.asta.clinic:[[ public_ip ]]"
         ]
       }
       env {
@@ -160,7 +160,7 @@ EOH
           "/data/mongo-c/config:/etc/mongo"
         ]
         extra_hosts = [
-          "0.gateway.asta.clinic:[[ ansible_eth0.ipv4.address ]]"
+          "0.gateway.asta.clinic:[[ public_ip ]]"
         ]
       }
       env {
