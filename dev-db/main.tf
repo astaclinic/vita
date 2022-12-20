@@ -78,7 +78,7 @@ resource "aws_lightsail_instance_public_ports" "vita_db_ports" {
   port_info {
     protocol  = "tcp"
     from_port = 27017
-    to_port   = 27017
+    to_port   = 27019
   }
   port_info {
     protocol  = "tcp"
