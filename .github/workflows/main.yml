@@ -33,11 +33,17 @@ jobs:
           role-to-assume: arn:aws:iam::627212684605:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
         with:
-          # terraform_version: 0.13.0:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/${{ github.repository_owner }}/providers/github"
+          service_account: "terraform@${{ github.repository_owner }}.iam.gserviceaccount.com"
+          audience: "https://github.com/${{ github.repository_owner }}"
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
       - name: Terraform Format
         id: fmt
@@ -60,7 +66,7 @@ jobs:
           TF_VAR_registry_username: ${{ github.actor }}
           TF_VAR_registry_password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/github-script@0.9.0
+      - uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
@@ -70,19 +76,33 @@ jobs:
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
             #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
             <details><summary>Show Plan</summary>
+
             \`\`\`\n
             ${process.env.PLAN}
             \`\`\`
+
             </details>
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-            github.issues.createComment({
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
             })
+
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
