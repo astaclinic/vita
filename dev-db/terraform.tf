@@ -1,10 +1,7 @@
 terraform {
-  cloud {
-    organization = "astaclinic"
-
-    workspaces {
-      name = "vita"
-    }
+  backend "gcs" {
+    bucket = "terraform.asta.clinic"
+    prefix = "states/vita"
   }
   required_providers {
     aws = {
