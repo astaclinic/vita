@@ -1,11 +1,15 @@
 name: "Terraform Dev"
 
 on:
-  push:
-    paths:
-      - dev-db/**
-      - .github/workflows/main.yaml
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      intent:
+        description: "Subcommand to run Terraform with"
+        required: true
+        type: choice
+        options:
+          - destroy
+          - apply
 
 permissions:
   id-token: write
@@ -108,8 +112,15 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' &&  inputs.intent == 'apply'
         run: terraform apply -auto-approve -input=false
+        env:
+          TF_VAR_registry_username: ${{ github.actor }}
+          TF_VAR_registry_password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Terraform Destroy
+        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' &&  inputs.intent == 'destroy'
+        run: terraform destroy -auto-approve -input=false
         env:
           TF_VAR_registry_username: ${{ github.actor }}
           TF_VAR_registry_password: ${{ secrets.GITHUB_TOKEN }}
